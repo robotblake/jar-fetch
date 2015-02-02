@@ -1,8 +1,5 @@
 #!/bin/bash
 
-build_file="$(dirname "$0")/jar-fetch.gradle"
-libs_path="$PWD"
-
 usage() {
 	echo "usage: jar-fetch [-p <path>] <lib> [<lib>...]"
 	exit 1
@@ -27,14 +24,16 @@ create_build_file() {
 [[ $# -eq 0 ]] && usage
 
 build_file="$(create_build_file)"
+libs_path="$PWD"
 
 while getopts "p:" opt; do
 	case $opt in
 		p)
-			libs_path=$OPTARG
-			;;
-		*)
-			echo $OPTARG
+			if [[ $OPTARG == /* ]]; then
+				libs_path="$OPTARG"
+			else
+				libs_path="$PWD/$OPTARG"
+			fi
 			;;
 	esac
 	shift $((OPTIND-1))
