@@ -1,0 +1,45 @@
+#!/bin/bash
+
+build_file="$(dirname "$0")/jar-fetch.gradle"
+libs_path="$PWD"
+
+usage() {
+	echo "usage: jar-fetch [-p <path>] <lib> [<lib>...]"
+	exit 1
+}
+
+join() {
+	local IFS=","
+	echo "$*"
+}
+
+create_build_file() {
+	local tmpfile=$(mktemp)
+	cat > $tmpfile <<-EOF
+	apply plugin: 'java'
+	repositories { jcenter() }
+	dependencies { for (lib in libs.split(',')) { runtime lib } }
+	task copyLibs(type: Copy) { into libsPath; from configurations.runtime }
+	EOF
+	echo $tmpfile
+}
+
+[[ $# -eq 0 ]] && usage
+
+build_file="$(create_build_file)"
+
+while getopts "p:" opt; do
+	case $opt in
+		p)
+			libs_path=$OPTARG
+			;;
+		*)
+			echo $OPTARG
+			;;
+	esac
+	shift $((OPTIND-1))
+done
+
+gradle -q -b "$build_file" copyLibs -Plibs="$(join "$@")" -PlibsPath="$libs_path"
+
+rm "$build_file"
